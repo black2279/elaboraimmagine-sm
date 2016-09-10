@@ -1,43 +1,31 @@
-/*
- * Operatori a convoluzione
- */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <inttypes.h>
-
-#define R 56
-#define G 48
-#define B 40
-#define R2 32
-#define G2 24
-#define B2 16
-
 
 static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim_head_bmp, unsigned char * &image, unsigned int & sx, unsigned int & sy)
 {
-	FILE *fHan = fopen(Nome, "rb");
+	FILE *fHan = fopen(Nome, "rb"); //Apertura del file in lettura
 	if(fHan == NULL) {
 		printf("errore!\n");
 		exit(1);
 	}
-    fseek(fHan,14,0);
-    fread(&dim_head_bmp,sizeof(int), 1, fHan);
+    fseek(fHan,14,0); //Salta Header BMP
+    fread(&dim_head_bmp,sizeof(int), 1, fHan); //Lettura dimensione header
     fread(&sx,sizeof(int), 1, fHan); // lettura 18-esimo byte che contiene la larghezza [4byte]
     fread(&sy,sizeof(int), 1, fHan); // lettura 22-esimo byte che contiene l' altezza   [4byte]
-    dim_head_bmp += 14;
-    rewind(fHan);
-	fread(header, dim_head_bmp, 1, fHan);
-	image = new unsigned char [sx*sy*3];
-	fread(image, (sx * sy)*3, 1, fHan);
-	fclose(fHan);
+    dim_head_bmp += 14; //Somma alla dimensione dell'header dell' immagine quella del formato
+    rewind(fHan); // Resetta il puntatore al file
+	fread(header, dim_head_bmp, 1, fHan); // Caricamento da file dell'header
+	image = new unsigned char [sx*sy*3]; //Creazione spazio nello heap per l' Immagine Sorgente
+	fread(image, (sx * sy)*3, 1, fHan); //Caricamento dei dati dell'Immagine Sorgente da file
+	fclose(fHan); //Chiusura del file
 }
 
 static void SalvaBmp(const char *Nome, unsigned char * header, const unsigned int dim_head_bmp, unsigned char *DaDove, int x, int y)
 {
-	FILE *fHan = fopen(Nome, "wb");
+	FILE *fHan = fopen(Nome, "wb"); //Apertura del file in scrittura
 	if(fHan == NULL) {
 		printf("errore!\n");
 		exit(1);
@@ -45,9 +33,9 @@ static void SalvaBmp(const char *Nome, unsigned char * header, const unsigned in
 
     memcpy(header+18, &x, sizeof(unsigned int)); //modifica larghezza
     memcpy(header+22, &y, sizeof(unsigned int)); //modifica altezza
-    fwrite(header, dim_head_bmp, 1, fHan);
-	fwrite(DaDove, (x * y)*3, 1, fHan);
-	fclose(fHan);
+    fwrite(header, dim_head_bmp, 1, fHan); //Scrittura del nuovo header
+	fwrite(DaDove, (x * y)*3, 1, fHan); // Trasferimento dell' Immagine Destinazione su file
+	fclose(fHan); // Chiusura del file
 }
 
 float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float x, float y, int n_canali) {
@@ -116,12 +104,20 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 #define KD	3
 #define OFS	((KD - 1) / 2)
 
-
 int Kernel[KD * KD] = {
-	0,	-2,	0,
-	-2,	8,	-2,
-	0,	-2,	0
+	 0,	0, 0,
+	-1,	1, 0,
+	 0,	0, 0
 };
+
+/*
+int Kernel[KD * KD] = {
+	 0, 0, 0, 0, 0,
+     0, 0,-1, 0, 0,
+     0,-1, 5,-1, 0,
+     0, 0,-1, 0, 0,
+     0, 0, 0, 0, 0
+};*/
 
 /*
 int Kernel[KD * KD] = {
@@ -133,55 +129,19 @@ int Kernel[KD * KD] = {
 };
 */
 
-//int Scala = 1;
+int Scala = 1;
 
-// operatori
-
-//int Pixel(int x, int y);
-//void Convoluzione();
-
-int main(int argc, char *argv[])
-{
-	unsigned char header[54]; // Header
-	unsigned int dim_head_bmp=0; //Dimensione Header
-	unsigned int sx=0; //Larghezza Immagine Sorgente
-	unsigned int sy=0; //Altezza Immagine Sorgente
-    unsigned int dx = 600; /*atoi(argv[3]);*/ //Larghezza Immagine Destinazione
-    unsigned int dy = 788; /*atoi(argv[4]);*/ //Altezza Immagine Destinazione
-    unsigned char *ImmagineS=0; //Puntatore a Immagine Sorgente
-    unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
-
-	CaricaBmp("acdc_red_ltoh.bmp", header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
-
-    printf("Dimensione immagine: L %d x H %d\n", sx, sy);
-
-	//Convoluzione();
-
-	Ridimensiona(ImmagineS, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
-
-	SalvaBmp("output.bmp", header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
-
-	//Deallocazione memoria
-	delete ImmagineS;
-	delete ImmagineD;
-	return 0;
-
-}
-
-// Implementazione
-/*
-int Pixel(int x, int y)
-{
+int Pixel(unsigned char *source,unsigned int sx, unsigned int sy, int x, int y){
 	int u, v;
 	int a;
 	int p = 0;
 
 	for(v = -OFS;v <= OFS;v++) {
-		if(y + v < 0 || y + v >= SY) continue;
+		if((y + v) < 0 || (y + v) >= sy) continue;
 		for(u = -OFS;u <= OFS;u++) {
-			if(x + u < 0 || x + u >= SX) continue;
+			if((x + u)*3 < 0 || (x + u)*3 >= sx*3) continue;
 
-			a = ImmagineS1[x + u + ((y + v) * SX)];
+			a = source[(x + u)*3 + ((y + v) * sx*3)];
 			p += (a * Kernel[u + OFS + ((v + OFS) * KD)]);
 		}
 	}
@@ -194,15 +154,48 @@ int Pixel(int x, int y)
 	return(p);
 }
 
-void Convoluzione()
+void Convoluzione(unsigned char * source, unsigned int sx, unsigned int sy, unsigned char * dest ) {
+
+	int x, y, c;
+
+    for(c=0;c<3;c++){
+        for(y = 0;y < sy;y++) {
+            for(x = 0;x < sx;x++) {
+                dest[c + x*3 + y*sx*3] = Pixel(source+c, sx, sy, x, y);
+            }
+        }
+    }
+
+}
+
+int main(int argc, char *argv[])
 {
-	int x, y;
+	unsigned char header[54]; // Header
+	unsigned int dim_head_bmp=0; //Dimensione Header
+	unsigned int sx=0; //Larghezza Immagine Sorgente
+	unsigned int sy=0; //Altezza Immagine Sorgente
+    unsigned int dx = 300; /*atoi(argv[3]);*/ //Larghezza Immagine Destinazione
+    unsigned int dy = 394; /*atoi(argv[4]);*/ //Altezza Immagine Destinazione
+    unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
+    unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
 
-	for(y = 0;y < SY;y++) {
-		for(x = 0;x < SX;x++) {
-			ImmagineD[x + (y * DX)] = Pixel(x, y);
-		}
-	}
+	CaricaBmp("acdc_red_ltoh.bmp", header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
 
-}*/
+    printf("Dimensione immagine: L %d x H %d\n", sx, sy);
+
+    unsigned char *ImmagineF = new unsigned char [sx*sy*3];
+
+	Convoluzione(ImmagineS, sx, sy, ImmagineF);
+
+	Ridimensiona(ImmagineF, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
+
+	SalvaBmp("output.bmp", header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
+
+	//Deallocazione memoria
+	delete[] ImmagineS;
+	delete[] ImmagineD;
+	delete[] ImmagineF;
+	return 0;
+
+}
 
