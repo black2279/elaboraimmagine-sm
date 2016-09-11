@@ -18,8 +18,12 @@ static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim
     dim_head_bmp += 14; //Somma alla dimensione dell'header dell' immagine quella del formato
     rewind(fHan); // Resetta il puntatore al file
 	fread(header, dim_head_bmp, 1, fHan); // Caricamento da file dell'header
-	image = new unsigned char [sx*sy*3]; //Creazione spazio nello heap per l' Immagine Sorgente
-	fread(image, (sx * sy)*3, 1, fHan); //Caricamento dei dati dell'Immagine Sorgente da file
+	int dim = sx*sy*3;
+	if((sx*3)%4 != 0){
+     dim += ((4 - (sx*3)%4) * sy);
+	}
+	image = new unsigned char [dim]; //Creazione spazio nello heap per l' Immagine Sorgente
+	fread(image, dim, 1, fHan); //Caricamento dei dati dell'Immagine Sorgente da file
 	fclose(fHan); //Chiusura del file
 }
 
@@ -34,8 +38,37 @@ static void SalvaBmp(const char *Nome, unsigned char * header, const unsigned in
     memcpy(header+18, &x, sizeof(unsigned int)); //modifica larghezza
     memcpy(header+22, &y, sizeof(unsigned int)); //modifica altezza
     fwrite(header, dim_head_bmp, 1, fHan); //Scrittura del nuovo header
-	fwrite(DaDove, (x * y)*3, 1, fHan); // Trasferimento dell' Immagine Destinazione su file
+    int dim = x*y*3;
+	if((x*3)%4 != 0){
+     dim += ((4 - (x*3)%4) * y);
+	}
+	fwrite(DaDove, dim, 1, fHan); // Trasferimento dell' Immagine Destinazione su file
 	fclose(fHan); // Chiusura del file
+}
+
+void RimuoviPadding(unsigned char * source, int width, int height, int padding, unsigned char * dest){
+    int offset = 0;
+    for(int y=0; y<height; y++ ){
+        for(int x=0; x<width*3; x++ ){
+            dest[x + y*width*3] = source[x+offset + y*width*3];
+        }
+        offset += padding;
+    }
+}
+
+void AggiungiPadding(unsigned char * source, int width, int height, int padding, unsigned char * dest){
+    int offset = 0;
+    for(int y=0; y<height; y++ ){
+        for(int x=0; x<width*3; x++ ){
+            dest[x+offset+ y*width*3] = source[x + y*width*3];
+        }
+        if(y>0){
+            for(int p=0; p<padding; p++){
+                dest[p + offset + y*width*3] = 0;
+            }
+        }
+        offset += padding;
+    }
 }
 
 float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float x, float y, int n_canali) {
@@ -84,16 +117,17 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 
 */
    for(int c=0; c<3; c++){ // Canali
+       printf("C: %d\n",c);
         for(int y = 0;y < dy;y++){ //Altezza
             for(int x = 0;x < dx;x++) { // Larghezza
                 u = x * scalex; //Fattore di scala per coordinata X
                 v = y * scaley; //Fattore di scala per coordinata Y
                 float int_canale = Bilineare((source+c),sx,sy,u,v,3); //Ricampionamento con
-                                                                    //interpolazione bilineare
+                                                                     //interpolazione bilineare
                 if ( int_canale  > 255 ) int_canale  = 255; //Clamping se maggiore di 255
                 if ( int_canale  < 0 ) int_canale  = 0; //Clamping se minore di 0
                 dest[c + x*3 +y*dx*3 ] = int_canale; //Scrittura del valore di intensità del canale
-                                                      //sull'immagine di destinazione
+                                                     //sull'immagine di destinazione
                 }
             }
         }
@@ -101,23 +135,40 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 
 // kernel
 
-#define KD	3
-#define OFS	((KD - 1) / 2)
+#define OFS ((KD - 1) / 2)
 
-int Kernel[KD * KD] = {
-	 0,	0, 0,
-	-1,	1, 0,
-	 0,	0, 0
-};
+int *Kernel;
+int KD;
+char* Filtri[4] = {"sharpen", "blur", "bordi", "bassorilievo"};
 
-/*
-int Kernel[KD * KD] = {
+int Sharpen[5 * 5] = {
 	 0, 0, 0, 0, 0,
      0, 0,-1, 0, 0,
      0,-1, 5,-1, 0,
      0, 0,-1, 0, 0,
      0, 0, 0, 0, 0
-};*/
+};
+
+int Blur[5 * 5] = {
+	 0, 0, 0, 0, 0,
+     0, 1, 1, 1, 0,
+     0, 1, 1, 1, 0,
+     0, 1, 1, 1, 0,
+     0, 0, 0, 0, 0
+};
+
+int Bordi[3 * 3] = {
+    0, 1, 0,
+    1,-4, 1,
+    0, 1, 0
+};
+
+int BassoRilievo[3 * 3] = {
+    -2,-1, 0,
+    -1, 1, 1,
+     0, 1, 2
+};
+
 
 /*
 int Kernel[KD * KD] = {
@@ -132,6 +183,7 @@ int Kernel[KD * KD] = {
 int Scala = 1;
 
 int Pixel(unsigned char *source,unsigned int sx, unsigned int sy, int x, int y){
+
 	int u, v;
 	int a;
 	int p = 0;
@@ -168,33 +220,117 @@ void Convoluzione(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 
 }
 
+static void SelezioneFiltro(char * selezione){
+
+    if(strcmp(selezione,Filtri[0]) == 0){
+        KD = 5;
+        Kernel = Sharpen;
+    }else if(strcmp(selezione,Filtri[1]) == 0){
+        KD = 5;
+        Kernel = Blur;
+    }else if(strcmp(selezione,Filtri[2]) == 0){
+        KD = 3;
+        Kernel = Bordi;
+    }else if(strcmp(selezione,Filtri[3]) == 0){
+        KD = 3;
+        Kernel = BassoRilievo;
+    }else{
+        printf("Filtro non disponibile");
+        exit(1);
+    }
+
+}
+
+void ControlloDimensioni(const char *in_dx, unsigned int &out_dx, const char *in_dy, unsigned int &out_dy){
+
+    if(atoi(in_dx) > 0){
+        out_dx = atoi(in_dx);
+    }else{
+        printf("Larghezza non valida\n");
+        exit(1);
+    }
+    if(atoi(in_dy) > 0){
+        out_dy = atoi(in_dy);
+    }else{
+        printf("Altezza non valida\n");
+        exit(1);
+    }
+
+}
+
 int main(int argc, char *argv[])
 {
 	unsigned char header[54]; // Header
 	unsigned int dim_head_bmp=0; //Dimensione Header
+    unsigned int paddingS = 0;
+    unsigned int paddingD = 0;
 	unsigned int sx=0; //Larghezza Immagine Sorgente
 	unsigned int sy=0; //Altezza Immagine Sorgente
-    unsigned int dx = 300; /*atoi(argv[3]);*/ //Larghezza Immagine Destinazione
-    unsigned int dy = 394; /*atoi(argv[4]);*/ //Altezza Immagine Destinazione
+    unsigned int dx=0; //Larghezza Immagine Destinazione
+    unsigned int dy=0; //Altezza Immagine Destinazione
+
+    ControlloDimensioni(argv[3], dx, argv[4], dy);
+
     unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
     unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
 
-	CaricaBmp("acdc_red_ltoh.bmp", header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
+	CaricaBmp(argv[1], header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
 
     printf("Dimensione immagine: L %d x H %d\n", sx, sy);
 
     unsigned char *ImmagineF = new unsigned char [sx*sy*3];
 
-	Convoluzione(ImmagineS, sx, sy, ImmagineF);
+    SelezioneFiltro(argv[2]);
 
-	Ridimensiona(ImmagineF, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
+    unsigned char *ImmagineSNP;
+    if((sx*3)%4 != 0){
+      paddingS = 4 - (sx*3)%4;
+      ImmagineSNP = new unsigned char [sx*sy*3];
+      RimuoviPadding(ImmagineS, sx, sy, paddingS, ImmagineSNP);
+      printf("Padding Rimosso\n");
+      printf("PaddingS: %d\n",paddingS);
+      Convoluzione(ImmagineSNP, sx, sy, ImmagineF);
+    }else{
+      Convoluzione(ImmagineS, sx, sy, ImmagineF);
+    }
 
-	SalvaBmp("output.bmp", header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
+    unsigned char *ImmagineDP;
+	if((dx*3)%4 != 0){
+        paddingD = 4 - ((dx*3)%4);
+        printf("PaddingD: %d\n", paddingD);
+        ImmagineDP = new unsigned char [(dx*dy*3) + (paddingD*dy)];
+	}
+
+    if( (sx != dx) || (sy != dy) ){
+        Ridimensiona(ImmagineF, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
+        printf("Ridimensionato\n");
+        if(paddingD != 0){
+            AggiungiPadding(ImmagineD, dx, dy, paddingD, ImmagineDP);
+            printf("Aggiunto Padding \n");
+            SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
+         }else{
+            SalvaBmp( argv[5], header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
+         }
+    }else if( (sx == dx) && (sy == dy) ){
+         if(paddingD != 0){
+            AggiungiPadding(ImmagineF, dx, dy, paddingD, ImmagineDP);
+            printf("Aggiunto Padding\n");
+            SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
+         }else{
+            SalvaBmp( argv[5], header, dim_head_bmp, ImmagineF, dx, dy); //Serializzazione Immagine
+         }
+    }
 
 	//Deallocazione memoria
 	delete[] ImmagineS;
 	delete[] ImmagineD;
 	delete[] ImmagineF;
+	if (ImmagineSNP){
+    delete[] ImmagineSNP;
+	}
+	if (ImmagineDP){
+    delete[] ImmagineDP;
+	}
 	return 0;
 
 }
