@@ -8,7 +8,7 @@ static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim
 {
 	FILE *fHan = fopen(Nome, "rb"); //Apertura del file in lettura
 	if(fHan == NULL) {
-		printf("errore!\n");
+		printf("File non disponibile o inesistente\n");
 		exit(1);
 	}
     fseek(fHan,14,0); //Salta Header BMP
@@ -18,9 +18,9 @@ static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim
     dim_head_bmp += 14; //Somma alla dimensione dell'header dell' immagine quella del formato
     rewind(fHan); // Resetta il puntatore al file
 	fread(header, dim_head_bmp, 1, fHan); // Caricamento da file dell'header
-	int dim = sx*sy*3;
+	int dim = sx*sy*3; //Dimensione senza padding
 	if((sx*3)%4 != 0){
-     dim += ((4 - (sx*3)%4) * sy);
+        dim += ((4 - (sx*3)%4) * sy); // Aggiunta del padding se la larghezza non è divisibile per 4
 	}
 	image = new unsigned char [dim]; //Creazione spazio nello heap per l' Immagine Sorgente
 	fread(image, dim, 1, fHan); //Caricamento dei dati dell'Immagine Sorgente da file
@@ -31,16 +31,16 @@ static void SalvaBmp(const char *Nome, unsigned char * header, const unsigned in
 {
 	FILE *fHan = fopen(Nome, "wb"); //Apertura del file in scrittura
 	if(fHan == NULL) {
-		printf("errore!\n");
+		printf("Impossibile creare o recuperare il file\n");
 		exit(1);
 	}
 
     memcpy(header+18, &x, sizeof(unsigned int)); //modifica larghezza
     memcpy(header+22, &y, sizeof(unsigned int)); //modifica altezza
     fwrite(header, dim_head_bmp, 1, fHan); //Scrittura del nuovo header
-    int dim = x*y*3;
+    int dim = x*y*3; //Dimensione senza padding
 	if((x*3)%4 != 0){
-     dim += ((4 - (x*3)%4) * y);
+     dim += ((4 - (x*3)%4) * y); // Aggiunta del padding se la larghezza non è divisibile per 4
 	}
 	fwrite(DaDove, dim, 1, fHan); // Trasferimento dell' Immagine Destinazione su file
 	fclose(fHan); // Chiusura del file
@@ -81,9 +81,9 @@ float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float 
 	y -= Y;
 
 	if(X < 0) X = 0;
-	if(X >= ((sx) - 1)) X = (sx) - 1;
+	if(X >= (sx - 1)) X = sx - 1;
 	if(Y < 0) Y = 0;
-	if(Y >= sy - 1) Y = sy - 1;
+	if(Y >= sy - 3) Y = sy - 3;
 
     //Ogni coordinata viene moltiplicate per il numero di canali presenti
     v1 = source[X*n_canali + (sx * Y*n_canali) ];
@@ -104,8 +104,6 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
    float scaley = ((float)sy) / ((float)dy); //Fattore di scale per l'altezza
    float u, v; //Coordinate da leggere in riferimento all'immagine sorgente
 
-   printf("Fattore di Scala per X: %f\nFattore di Scala per Y: %f\n",scalex,scaley);
-
 /*  Lettura Immagine
             B  G  R
             0  1  2
@@ -117,13 +115,12 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 
 */
    for(int c=0; c<3; c++){ // Canali
-       printf("C: %d\n",c);
         for(int y = 0;y < dy;y++){ //Altezza
             for(int x = 0;x < dx;x++) { // Larghezza
                 u = x * scalex; //Fattore di scala per coordinata X
                 v = y * scaley; //Fattore di scala per coordinata Y
                 float int_canale = Bilineare((source+c),sx,sy,u,v,3); //Ricampionamento con
-                                                                     //interpolazione bilineare
+                                                                      //interpolazione bilineare
                 if ( int_canale  > 255 ) int_canale  = 255; //Clamping se maggiore di 255
                 if ( int_canale  < 0 ) int_canale  = 0; //Clamping se minore di 0
                 dest[c + x*3 +y*dx*3 ] = int_canale; //Scrittura del valore di intensità del canale
@@ -269,57 +266,63 @@ int main(int argc, char *argv[])
     unsigned int dx=0; //Larghezza Immagine Destinazione
     unsigned int dy=0; //Altezza Immagine Destinazione
 
-    ControlloDimensioni(argv[3], dx, argv[4], dy);
+    printf("\n");
+    ControlloDimensioni( argv[3], dx, argv[4], dy);
 
     unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
     unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
 
-	CaricaBmp(argv[1], header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
+	CaricaBmp( argv[1], header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
 
-    printf("Dimensione immagine: L %d x H %d\n", sx, sy);
+    printf("Dimensione immagine in input: L %d x H %d\n", sx, sy);
+    printf("Dimensione immagine prevista per l'output: L %d x H %d\n", dx, dy);
 
     unsigned char *ImmagineF = new unsigned char [sx*sy*3];
 
-    SelezioneFiltro(argv[2]);
+    SelezioneFiltro( argv[2] );
 
-    unsigned char *ImmagineSNP;
+    printf("Filtro Applicato: %s\n\n", argv[2]);
+
+    unsigned char *ImmagineSNP = NULL;
     if((sx*3)%4 != 0){
       paddingS = 4 - (sx*3)%4;
       ImmagineSNP = new unsigned char [sx*sy*3];
       RimuoviPadding(ImmagineS, sx, sy, paddingS, ImmagineSNP);
-      printf("Padding Rimosso\n");
-      printf("PaddingS: %d\n",paddingS);
       Convoluzione(ImmagineSNP, sx, sy, ImmagineF);
     }else{
       Convoluzione(ImmagineS, sx, sy, ImmagineF);
     }
 
-    unsigned char *ImmagineDP;
+    unsigned char *ImmagineDP = NULL;
 	if((dx*3)%4 != 0){
         paddingD = 4 - ((dx*3)%4);
-        printf("PaddingD: %d\n", paddingD);
         ImmagineDP = new unsigned char [(dx*dy*3) + (paddingD*dy)];
 	}
 
     if( (sx != dx) || (sy != dy) ){
+
+        printf("Ridimensionamento...\n");
         Ridimensiona(ImmagineF, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
-        printf("Ridimensionato\n");
+
         if(paddingD != 0){
             AggiungiPadding(ImmagineD, dx, dy, paddingD, ImmagineDP);
-            printf("Aggiunto Padding \n");
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
          }else{
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
          }
+        printf("Immagine ridimensionata\n");
+
     }else if( (sx == dx) && (sy == dy) ){
+
          if(paddingD != 0){
             AggiungiPadding(ImmagineF, dx, dy, paddingD, ImmagineDP);
-            printf("Aggiunto Padding\n");
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
          }else{
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineF, dx, dy); //Serializzazione Immagine
          }
+
     }
+    printf("Immagine processata\n");
 
 	//Deallocazione memoria
 	delete[] ImmagineS;
@@ -331,6 +334,7 @@ int main(int argc, char *argv[])
 	if (ImmagineDP){
     delete[] ImmagineDP;
 	}
+
 	return 0;
 
 }
