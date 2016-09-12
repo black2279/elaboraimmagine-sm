@@ -135,6 +135,7 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 #define OFS ((KD - 1) / 2)
 
 int *Kernel;
+int Scala = 1;
 int KD;
 char* Filtri[4] = {"sharpen", "blur", "bordi", "bassorilievo"};
 
@@ -176,8 +177,6 @@ int Kernel[KD * KD] = {
 	0,	0,	1,	0,	0
 };
 */
-
-int Scala = 1;
 
 int Pixel(unsigned char *source,unsigned int sx, unsigned int sy, int x, int y){
 
@@ -225,6 +224,7 @@ static void SelezioneFiltro(char * selezione){
     }else if(strcmp(selezione,Filtri[1]) == 0){
         KD = 5;
         Kernel = Blur;
+        Scala = 9;
     }else if(strcmp(selezione,Filtri[2]) == 0){
         KD = 3;
         Kernel = Bordi;
