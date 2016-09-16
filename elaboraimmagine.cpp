@@ -139,6 +139,7 @@ int *Kernel;
 int Scala = 1; // Valore del divisore che compone il rapporto che viene moltiplicato per la matrice kernel
 int KD; // Dimensione della matrice kernel
 char* Filtri[4] = {"sharpen", "blur", "bordi", "bassorilievo"};
+char* Comandi[2] = {"brightness", "gamma"};
 
 int Sharpen[5 * 5] = {
 	 0, 0, 0, 0, 0,
@@ -211,7 +212,39 @@ void Convoluzione(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 
 }
 
-static void SelezioneFiltro(char * selezione){
+void Brightness(float valore, unsigned char * source,  unsigned int sx, unsigned int sy, unsigned char * dest){
+
+    for (int c = 0; c<3; c++){
+        for(int y = 0;y < sy;y++) {
+            for(int x = 0;x < sx;x++) {
+                float v = source[x*3 + c + (y * sx*3)];
+                v += v * valore;
+                if(v > 255) v = 255;
+                if(v < 0) v = 0;
+                dest[x*3 + c + (y * sx*3)] = v;
+            }
+        }
+    }
+}
+
+void Gamma(float esponente, unsigned char * source, unsigned int sx, unsigned int sy, unsigned char * dest) {
+
+    for(int c = 0;c < 3;c++) {
+        for(int y = 0;y < sy;y++) {
+            for(int x = 0;x < sx;x++) {
+                float v = source[x*3 + c + (y * sx*3)];
+                v = pow(v / 255.0f, esponente);
+                v *= 255.0f;
+                if(v > 255) v = 255;
+                if(v < 0) v = 0;
+                dest[x*3 + c  + (y * sx*3)] = v;
+            }
+        }
+    }
+
+}
+
+static bool SelezioneFiltro(char * selezione){
 
     if(strcmp(selezione,Filtri[0]) == 0){
         KD = 5;
@@ -227,10 +260,9 @@ static void SelezioneFiltro(char * selezione){
         KD = 3;
         Kernel = BassoRilievo;
     }else{
-        printf("Filtro non disponibile");
-        exit(1);
+        return false;
     }
-
+    return true;
 }
 
 void ControlloDimensioni(const char *in_dx, unsigned int &out_dx, const char *in_dy, unsigned int &out_dy){
@@ -280,19 +312,40 @@ int main(int argc, char *argv[])
 
     unsigned char *ImmagineF = new unsigned char [sx*sy*3]; // Creazione Buffer per Immagine Filtrata
 
-    SelezioneFiltro( argv[2] );
-
-    printf("Filtro Applicato: %s\n\n", argv[2]);
-
-    unsigned char *ImmagineSNP = NULL;
+    unsigned char *ImmagineSTE = ImmagineS;
     if((sx*3)%4 != 0){
       paddingS = 4 - (sx*3)%4; // Calcolo del padding per l'immagine sorgente
-      ImmagineSNP = new unsigned char [sx*sy*3]; // Buffer per immagine senza padding
+      unsigned char *ImmagineSNP = new unsigned char [sx*sy*3]; // Buffer per immagine senza padding
       RimuoviPadding(ImmagineS, sx, sy, paddingS, ImmagineSNP); // Rimozione del padding
-      Convoluzione(ImmagineSNP, sx, sy, ImmagineF);
-    }else{
-      Convoluzione(ImmagineS, sx, sy, ImmagineF);
+      ImmagineSTE = ImmagineSNP;
     }
+
+    if (SelezioneFiltro( argv[2] )){
+        printf("Filtro Applicato: %s\n\n", argv[2]);
+        Convoluzione(ImmagineSTE, sx, sy, ImmagineF);
+    }else if ( strcmp(argv[2], Comandi[0]) == 0 ){
+        int valore=-1;
+        do{
+         printf("Inserisci il fattore di luminosita : ");
+        }while(scanf("%d", &valore) < 0);
+        printf("Valore inserito: %d\n", valore);
+        float brightness = ((float) valore) / 100.0f;
+        Brightness(brightness, ImmagineSTE, sx, sy, ImmagineF);
+        printf("Comando utlizzato: %s\n", Comandi[0]);
+    }else if ( strcmp(argv[2], Comandi[1]) == 0 ){
+        int valore=-1;
+        do{
+         printf("Inserisci il fattore di gamma: ");
+        }while(scanf("%d", &valore) < 0);
+        printf("Valore inserito: %d\n", valore);
+        float gamma = ((float) valore) / 100.0f;
+        Gamma(gamma, ImmagineSTE, sx, sy, ImmagineF);
+        printf("Comando utlizzato: %s\n", Comandi[1]);
+    }else{
+        printf("Comando/Filtro non disponibile\n");
+        exit(1);
+    }
+
 
     unsigned char *ImmagineDP = NULL;
 	if((dx*3)%4 != 0){
@@ -330,12 +383,11 @@ int main(int argc, char *argv[])
     printf("Immagine processata\n");
 
 	//Deallocazione memoria
-	delete[] ImmagineS;
+	if(ImmagineSTE){
+	 delete [] ImmagineSTE;
+	}
 	delete[] ImmagineD;
 	delete[] ImmagineF;
-	if (ImmagineSNP){
-    delete[] ImmagineSNP;
-	}
 	if (ImmagineDP){
     delete[] ImmagineDP;
 	}
