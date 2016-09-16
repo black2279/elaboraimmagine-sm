@@ -267,6 +267,12 @@ int main(int argc, char *argv[])
     unsigned int dy=0; //Altezza Immagine Destinazione
 
     printf("\n");
+
+    if(argv[1] == NULL){
+        printf("Errore\n");
+        exit(1);
+    }
+
     ControlloDimensioni( argv[3], dx, argv[4], dy);
 
     unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
