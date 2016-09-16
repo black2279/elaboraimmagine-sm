@@ -50,9 +50,10 @@ void RimuoviPadding(unsigned char * source, int width, int height, int padding, 
     int offset = 0;
     for(int y=0; y<height; y++ ){
         for(int x=0; x<width*3; x++ ){
-            dest[x + y*width*3] = source[x+offset + y*width*3];
+            dest[x + y*width*3] = source[x+offset + y*width*3]; // Copia nel buffer di destinazione dei
+                                                                // byte significativi
         }
-        offset += padding;
+        offset += padding; // Contatore dei byte del padding per ogni riga di pixel
     }
 }
 
@@ -60,9 +61,10 @@ void AggiungiPadding(unsigned char * source, int width, int height, int padding,
     int offset = 0;
     for(int y=0; y<height; y++ ){
         for(int x=0; x<width*3; x++ ){
-            dest[x+offset+ y*width*3] = source[x + y*width*3];
+            dest[x+offset+ y*width*3] = source[x + y*width*3]; // Copia del buffer di ingresso
+                                                              //in quello di destinazione tenendo conto del padding
         }
-        if(y>0){
+        if(y>0){            //Aggiunta del padding partendo dalla riga successiva alla prima
             for(int p=0; p<padding; p++){
                 dest[p + offset + y*width*3] = 0;
             }
@@ -74,12 +76,13 @@ void AggiungiPadding(unsigned char * source, int width, int height, int padding,
 float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float x, float y, int n_canali) {
 
 	float v1, v2, v3, v4;
-	int X = (int) x;
-	int Y = (int) y;
+	int X = (int) x; // Parte intera di x
+	int Y = (int) y; // Parte intera di y
 
-	x -= X;
-	y -= Y;
+	x -= X; // Parte decimale di x
+	y -= Y; // Parte decimale di y
 
+    //Correzione delle coordinate escano dai limiti prestabiliti
 	if(X < 0) X = 0;
 	if(X >= (sx - 1)) X = sx - 1;
 	if(Y < 0) Y = 0;
@@ -130,13 +133,11 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
         }
 }
 
-// kernel
-
 #define OFS ((KD - 1) / 2)
 
 int *Kernel;
-int Scala = 1;
-int KD;
+int Scala = 1; // Valore del divisore che compone il rapporto che viene moltiplicato per la matrice kernel
+int KD; // Dimensione della matrice kernel
 char* Filtri[4] = {"sharpen", "blur", "bordi", "bassorilievo"};
 
 int Sharpen[5 * 5] = {
@@ -167,17 +168,6 @@ int BassoRilievo[3 * 3] = {
      0, 1, 2
 };
 
-
-/*
-int Kernel[KD * KD] = {
-	0,	0,	1,	0,	0,
-	0,	1,	2,	1,	0,
-	1,	2,	3,	2,	1,
-	0,	1,	2,	1,	0,
-	0,	0,	1,	0,	0
-};
-*/
-
 int Pixel(unsigned char *source,unsigned int sx, unsigned int sy, int x, int y){
 
 	int u, v;
@@ -185,19 +175,24 @@ int Pixel(unsigned char *source,unsigned int sx, unsigned int sy, int x, int y){
 	int p = 0;
 
 	for(v = -OFS;v <= OFS;v++) {
-		if((y + v) < 0 || (y + v) >= sy) continue;
+		if((y + v) < 0 || (y + v) >= sy) continue; // Salta un iterazione se la condizione si verifica
 		for(u = -OFS;u <= OFS;u++) {
-			if((x + u)*3 < 0 || (x + u)*3 >= sx*3) continue;
+			if((x + u)*3 < 0 || (x + u)*3 >= sx*3) continue; // Salta un iterazione se la condizione si verifica
+			a = source[(x + u)*3 + ((y + v) * sx*3)]; // Recupera il valore del canale del pixel
+			p += (a * Kernel[u + OFS + ((v + OFS) * KD)]); // Il valore ottenuto in precedenza viene
+                                                           // moltiplicato per il componente
+                                                           // della matrice kernel corrispondente.
+                                                           // Esso viene sommato n volte dove n è il numero
+                                                           // di componenti letti della matrice kernel
 
-			a = source[(x + u)*3 + ((y + v) * sx*3)];
-			p += (a * Kernel[u + OFS + ((v + OFS) * KD)]);
+
 		}
 	}
 
-	p /= Scala;
+	p /= Scala; // Rapporto tra il valore del canale del pixel ottenuto ed un valore di scala
 
-	if(p < 0) p = 0;
-	if(p > 255) p = 255;
+	if(p < 0) p = 0; // Clamping se il valore risulta minore di 0
+	if(p > 255) p = 255; // Clamping se il valore risulta maggiore di 255
 
 	return(p);
 }
@@ -224,7 +219,7 @@ static void SelezioneFiltro(char * selezione){
     }else if(strcmp(selezione,Filtri[1]) == 0){
         KD = 5;
         Kernel = Blur;
-        Scala = 9;
+        Scala = 9; // Questo parametro serve per bilanciare l'effetto blur
     }else if(strcmp(selezione,Filtri[2]) == 0){
         KD = 3;
         Kernel = Bordi;
@@ -241,13 +236,13 @@ static void SelezioneFiltro(char * selezione){
 void ControlloDimensioni(const char *in_dx, unsigned int &out_dx, const char *in_dy, unsigned int &out_dy){
 
     if(atoi(in_dx) > 0){
-        out_dx = atoi(in_dx);
+        out_dx = atoi(in_dx); // Conversione da stringa a intero
     }else{
         printf("Larghezza non valida\n");
         exit(1);
     }
     if(atoi(in_dy) > 0){
-        out_dy = atoi(in_dy);
+        out_dy = atoi(in_dy); // Conversione da stringa a intero
     }else{
         printf("Altezza non valida\n");
         exit(1);
@@ -268,7 +263,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    if(argv[1] == NULL){
+    if(argv[1] == NULL){ // Controllo comando senza parametri
         printf("Errore\n");
         exit(1);
     }
@@ -283,7 +278,7 @@ int main(int argc, char *argv[])
     printf("Dimensione immagine in input: L %d x H %d\n", sx, sy);
     printf("Dimensione immagine prevista per l'output: L %d x H %d\n", dx, dy);
 
-    unsigned char *ImmagineF = new unsigned char [sx*sy*3];
+    unsigned char *ImmagineF = new unsigned char [sx*sy*3]; // Creazione Buffer per Immagine Filtrata
 
     SelezioneFiltro( argv[2] );
 
@@ -291,9 +286,9 @@ int main(int argc, char *argv[])
 
     unsigned char *ImmagineSNP = NULL;
     if((sx*3)%4 != 0){
-      paddingS = 4 - (sx*3)%4;
-      ImmagineSNP = new unsigned char [sx*sy*3];
-      RimuoviPadding(ImmagineS, sx, sy, paddingS, ImmagineSNP);
+      paddingS = 4 - (sx*3)%4; // Calcolo del padding per l'immagine sorgente
+      ImmagineSNP = new unsigned char [sx*sy*3]; // Buffer per immagine senza padding
+      RimuoviPadding(ImmagineS, sx, sy, paddingS, ImmagineSNP); // Rimozione del padding
       Convoluzione(ImmagineSNP, sx, sy, ImmagineF);
     }else{
       Convoluzione(ImmagineS, sx, sy, ImmagineF);
@@ -301,17 +296,20 @@ int main(int argc, char *argv[])
 
     unsigned char *ImmagineDP = NULL;
 	if((dx*3)%4 != 0){
-        paddingD = 4 - ((dx*3)%4);
-        ImmagineDP = new unsigned char [(dx*dy*3) + (paddingD*dy)];
+        paddingD = 4 - ((dx*3)%4);  // Calcolo del padding per l'immagine destinazione
+        ImmagineDP = new unsigned char [(dx*dy*3) + (paddingD*dy)]; // Buffer per immagine destinazione
+                                                                    // con padding
 	}
 
-    if( (sx != dx) || (sy != dy) ){
+    if( (sx != dx) || (sy != dy) ){ // Controllo che valuta se le dimansioni di ingresso
+                                    // sono diverse da quelle di destinazione
 
         printf("Ridimensionamento...\n");
         Ridimensiona(ImmagineF, sx, sy, ImmagineD, dx, dy); //Ridimensionamento Immagine
 
         if(paddingD != 0){
-            AggiungiPadding(ImmagineD, dx, dy, paddingD, ImmagineDP);
+            AggiungiPadding(ImmagineD, dx, dy, paddingD, ImmagineDP); // Aggiunta del padding per l'immagine di
+                                                                      // destinazione
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
          }else{
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineD, dx, dy); //Serializzazione Immagine
@@ -321,7 +319,8 @@ int main(int argc, char *argv[])
     }else if( (sx == dx) && (sy == dy) ){
 
          if(paddingD != 0){
-            AggiungiPadding(ImmagineF, dx, dy, paddingD, ImmagineDP);
+            AggiungiPadding(ImmagineF, dx, dy, paddingD, ImmagineDP); // Aggiunta del padding per l'immagine di
+                                                                      // destinazione
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineDP, dx, dy); //Serializzazione Immagine
          }else{
             SalvaBmp( argv[5], header, dim_head_bmp, ImmagineF, dx, dy); //Serializzazione Immagine
