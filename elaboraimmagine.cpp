@@ -229,18 +229,18 @@ void Brightness(float valore, unsigned char * source,  unsigned int sx, unsigned
 
 void Gamma(float esponente, unsigned char * source, unsigned int sx, unsigned int sy, unsigned char * dest) {
 
-    for(int c = 0;c < 3;c++) {
-        for(int y = 0;y < sy;y++) {
-            for(int x = 0;x < sx;x++) {
-                float v = source[x*3 + c + (y * sx*3)];
-                v = pow(v / 255.0f, esponente);
-                v *= 255.0f;
-                if(v > 255) v = 255;
-                if(v < 0) v = 0;
-                dest[x*3 + c  + (y * sx*3)] = v;
+        for(int c = 0;c < 3;c++) {
+            for(int y = 0;y < sy;y++) {
+                for(int x = 0;x < sx;x++) {
+                    float v = source[x*3 + c + (y * sx*3)];
+                    v = pow(v / 255.0f, 1.0f/esponente);
+                    v *= 255.0f;
+                    if(v > 255) v = 255;
+                    if(v < 0) v = 0;
+                    dest[x*3 + c  + (y * sx*3)] = v;
+                }
             }
         }
-    }
 
 }
 
@@ -326,19 +326,18 @@ int main(int argc, char *argv[])
     }else if ( strcmp(argv[2], Comandi[0]) == 0 ){
         int valore=-1;
         do{
-         printf("Inserisci il fattore di luminosita : ");
+         printf("Inserisci il fattore di luminosita (%%): ");
         }while(scanf("%d", &valore) < 0);
         printf("Valore inserito: %d\n", valore);
         float brightness = ((float) valore) / 100.0f;
         Brightness(brightness, ImmagineSTE, sx, sy, ImmagineF);
         printf("Comando utlizzato: %s\n", Comandi[0]);
     }else if ( strcmp(argv[2], Comandi[1]) == 0 ){
-        int valore=-1;
+        float gamma=6.0f;
         do{
          printf("Inserisci il fattore di gamma: ");
-        }while(scanf("%d", &valore) < 0);
-        printf("Valore inserito: %d\n", valore);
-        float gamma = ((float) valore) / 100.0f;
+        }while( scanf("%f", &gamma) < 0 && gamma > 0.0f );
+        printf("Valore inserito: %f\n", gamma);
         Gamma(gamma, ImmagineSTE, sx, sy, ImmagineF);
         printf("Comando utlizzato: %s\n", Comandi[1]);
     }else{
