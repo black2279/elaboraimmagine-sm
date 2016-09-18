@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <string.h>
+#include <string>
+
+using std::string;
 
 static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim_head_bmp, unsigned char * &image, unsigned int & sx, unsigned int & sy)
 {
@@ -82,7 +84,7 @@ float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float 
 	x -= X; // Parte decimale di x
 	y -= Y; // Parte decimale di y
 
-    //Correzione delle coordinate escano dai limiti prestabiliti
+    //Correzione delle coordinate se superano i limiti prestabiliti
 	if(X < 0) X = 0;
 	if(X >= (sx - 1)) X = sx - 1;
 	if(Y < 0) Y = 0;
@@ -126,8 +128,8 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
                                                                       //interpolazione bilineare
                 if ( int_canale  > 255 ) int_canale  = 255; //Clamping se maggiore di 255
                 if ( int_canale  < 0 ) int_canale  = 0; //Clamping se minore di 0
-                dest[c + x*3 +y*dx*3 ] = int_canale; //Scrittura del valore di intensità del canale
-                                                     //sull'immagine di destinazione
+                dest[c + x*3 +y*dx*3 ] = (char) int_canale; //Scrittura del valore di intensità del canale
+                                                            //sull'immagine di destinazione
                 }
             }
         }
@@ -218,10 +220,10 @@ void Brightness(float valore, unsigned char * source,  unsigned int sx, unsigned
         for(int y = 0;y < sy;y++) {
             for(int x = 0;x < sx;x++) {
                 float v = source[x*3 + c + (y * sx*3)];
-                v += v * valore;
+                v += v * valore; // Aumento/Diminuzione della percentuale di luminosità
                 if(v > 255) v = 255;
                 if(v < 0) v = 0;
-                dest[x*3 + c + (y * sx*3)] = v;
+                dest[x*3 + c + (y * sx*3)] = (char) v;
             }
         }
     }
@@ -237,7 +239,7 @@ void Gamma(float esponente, unsigned char * source, unsigned int sx, unsigned in
                     v *= 255.0f;
                     if(v > 255) v = 255;
                     if(v < 0) v = 0;
-                    dest[x*3 + c  + (y * sx*3)] = v;
+                    dest[x*3 + c  + (y * sx*3)] = (char) v;
                 }
             }
         }
@@ -282,12 +284,32 @@ void ControlloDimensioni(const char *in_dx, unsigned int &out_dx, const char *in
 
 }
 
+bool is_number(const std::string s)
+{
+    std::string::const_iterator it = s.begin() + 1;
+    while (it != s.end() && isdigit(*it)) ++it;
+    return !s.empty() && it == s.end() && ( isdigit(*(s.begin())) || *(s.begin()) == '-' );
+}
+
+bool is_float(const std::string s)
+{
+    std::string::const_iterator it = s.begin();
+    int dot = 0;
+    while (it != s.end() && (isdigit(*it) || *it=='.') && dot < 1 ){
+        if( *it == '.'){
+        dot++;
+        }
+        ++it ;
+    }
+    return !s.empty() && it == s.end();
+}
+
 int main(int argc, char *argv[])
 {
 	unsigned char header[54]; // Header
 	unsigned int dim_head_bmp=0; //Dimensione Header
-    unsigned int paddingS = 0;
-    unsigned int paddingD = 0;
+    unsigned int paddingS = 0; // Padding dell'Immagine Sorgente
+    unsigned int paddingD = 0; // Padding dell'Immagine Destinazione
 	unsigned int sx=0; //Larghezza Immagine Sorgente
 	unsigned int sy=0; //Altezza Immagine Sorgente
     unsigned int dx=0; //Larghezza Immagine Destinazione
@@ -320,31 +342,41 @@ int main(int argc, char *argv[])
       ImmagineSTE = ImmagineSNP;
     }
 
-    if (SelezioneFiltro( argv[2] )){
-        printf("Filtro Applicato: %s\n\n", argv[2]);
-        Convoluzione(ImmagineSTE, sx, sy, ImmagineF);
-    }else if ( strcmp(argv[2], Comandi[0]) == 0 ){
-        int valore=-1;
-        do{
-         printf("Inserisci il fattore di luminosita (%%): ");
-        }while(scanf("%d", &valore) < 0);
-        printf("Valore inserito: %d\n", valore);
-        float brightness = ((float) valore) / 100.0f;
-        Brightness(brightness, ImmagineSTE, sx, sy, ImmagineF);
-        printf("Comando utlizzato: %s\n", Comandi[0]);
-    }else if ( strcmp(argv[2], Comandi[1]) == 0 ){
-        float gamma=6.0f;
-        do{
-         printf("Inserisci il fattore di gamma: ");
-        }while( scanf("%f", &gamma) < 0 && gamma > 0.0f );
-        printf("Valore inserito: %f\n", gamma);
-        Gamma(gamma, ImmagineSTE, sx, sy, ImmagineF);
-        printf("Comando utlizzato: %s\n", Comandi[1]);
-    }else{
-        printf("Comando/Filtro non disponibile\n");
-        exit(1);
-    }
+    if ( strcmp(argv[2],"nofilter") != 0){
 
+        if (SelezioneFiltro( argv[2] )){
+            printf("Filtro Applicato: %s\n\n", argv[2]);
+            Convoluzione(ImmagineSTE, sx, sy, ImmagineF);
+        }else if ( strcmp(argv[2], Comandi[0]) == 0 ){
+            char val[100];
+            do{
+                printf("Inserisci il fattore di luminosita (%%): "); // Controllo del valore inserito
+                scanf("%s", &val[0]);
+            }while( !is_number(val));
+            int valore = atoi(val);
+            printf("Valore inserito: %d\n", valore);
+            float brightness = ((float) valore) / 100.0f;
+            Brightness(brightness, ImmagineSTE, sx, sy, ImmagineF);
+            printf("Comando utlizzato: %s\n", Comandi[0]);
+        }else if ( strcmp(argv[2], Comandi[1]) == 0 ){
+            char gam[100];
+            do{
+                printf("Inserisci il fattore di gamma: ");
+                scanf("%s", &gam[0]);
+            }while( !is_float(gam) || atof(gam) < 0.0f ); // Controllo del valore inserito
+            float gamma = atof(gam);
+            printf("Valore inserito: %f\n", gamma);
+            Gamma(gamma, ImmagineSTE, sx, sy, ImmagineF);
+            printf("Comando utlizzato: %s\n", Comandi[1]);
+        }else{
+            printf("Comando/Filtro non disponibile\n");
+            exit(1);
+        }
+
+    }else{
+        printf("Nessun Filtro Selezionato\n");
+        ImmagineF = ImmagineSTE;
+    }
 
     unsigned char *ImmagineDP = NULL;
 	if((dx*3)%4 != 0){
@@ -386,7 +418,9 @@ int main(int argc, char *argv[])
 	 delete [] ImmagineSTE;
 	}
 	delete[] ImmagineD;
+	if(ImmagineSTE != ImmagineF){
 	delete[] ImmagineF;
+	}
 	if (ImmagineDP){
     delete[] ImmagineDP;
 	}
@@ -394,4 +428,3 @@ int main(int argc, char *argv[])
 	return 0;
 
 }
-
