@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string>
+#include <string.h>
 
 using std::string;
 
@@ -140,8 +141,8 @@ void Ridimensiona(unsigned char * source, unsigned int sx, unsigned int sy, unsi
 int *Kernel;
 int Scala = 1; // Valore del divisore che compone il rapporto che viene moltiplicato per la matrice kernel
 int KD; // Dimensione della matrice kernel
-char* Filtri[4] = {"sharpen", "blur", "bordi", "bassorilievo"};
-char* Comandi[2] = {"brightness", "gamma"};
+char * Filtri[] = {"sharpen", "blur", "bordi", "bassorilievo"};
+char * Comandi[] = {"brightness", "gamma"};
 
 int Sharpen[5 * 5] = {
 	 0, 0, 0, 0, 0,
@@ -295,13 +296,13 @@ bool is_float(const std::string s)
 {
     std::string::const_iterator it = s.begin();
     int dot = 0;
-    while (it != s.end() && (isdigit(*it) || *it=='.') && dot < 1 ){
+    while (it != s.end() && (isdigit(*it) || *it=='.') && dot <= 1 ){
         if( *it == '.'){
         dot++;
         }
         ++it ;
     }
-    return !s.empty() && it == s.end();
+    return !s.empty() && it == s.end() && dot <= 1;
 }
 
 int main(int argc, char *argv[])
