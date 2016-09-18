@@ -28,3 +28,10 @@ Per il parametro `<comando>` sono disponibili i seguenti valori per identificare
 
 `brightness` Permette di aumentare o di diminuire la luminosità di una certa percentuale. Essa può essere inserita a runtime  
 `gamma` Permette di corregge la gamma dei colori dell'immagine. Il valore di correzione può essere specificato a runtime 
+
+##Comandi speciali
+Per il parametro `<comando>` sono disponibili i seguenti valori per identificare i vari comandi speciali:
+
+`nofilter` Permette di non applicare nessun filtro/comando  
+
+
