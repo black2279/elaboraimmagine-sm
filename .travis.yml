@@ -13,6 +13,10 @@ script:
  # compiler existing test
  #- i686-w64-mingw32-gcc --help
  #- x86_64-w64-mingw32-gcc --help
+ - export RELEASE_NAME=elaboraimmagine
+ - export RELEASE_WIN32=win32
+ - export RELEASE_WIN64=win64
+ - export RELEASE_UNIX=unix
  - make all
  - zip $(RELEASE_NAME)-$(RELEASE_WIN32).zip $(RELEASE_WIN32)/$(RELEASE_NAME).exe README.md
  - zip $(RELEASE_NAME)-$(RELEASE_WIN64).zip $(RELEASE_WIN64)/$(RELEASE_NAME).exe README.md
