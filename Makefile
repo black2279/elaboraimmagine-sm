@@ -1,27 +1,39 @@
 
 SOURCES=elaboraimmagine.cpp
 
-ADDITIONAL_FLAGS ?= -g
+ADDITIONAL_CFLAGS ?= -g
+RELEASE_NAME=elaboraimmagine
 RELEASE_WIN32=win32
 RELEASE_WIN64=win64
 RELEASE_UNIX=unix
+RELEASE_NAME_WIN32 := $(RELEASE_NAME)-$(RELEASE_WIN32).exe
+RELEASE_NAME_WIN64 := $(RELEASE_NAME)-$(RELEASE_WIN64).exe
+RELEASE_NAME_UNIX := $(RELEASE_NAME)
+MACHINE_X86 = i386
+MACHINE_X64 = i686
+ENV_X86 = mingw32
+ENV_X64 = mingw64
 
 all: $(RELEASE_WIN32) $(RELEASE_WIN64) $(RELEASE_UNIX)
 
-$(RELEASE_WIN32): elaboraimmagine-$(RELEASE_WIN32).exe
-$(RELEASE_WIN64): elaboraimmagine-$(RELEASE_WIN64).exe
-$(RELEASE_UNIX): elaboraimmagine
+$(RELEASE_WIN32): $(RELEASE_NAME_WIN32)
+$(RELEASE_WIN64): $(RELEASE_NAME_WIN64)
+$(RELEASE_UNIX): $(RELEASE_NAME_UNIX)
 
-elaboraimmagine-$(RELEASE_WIN32).exe: $(SOURCES)
- $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_WIN32)/$(@)"
+$(RELEASE_NAME_WIN32): $(SOURCES)
+	$(CXX) -dumpmachine
+	mkdir -p $(RELEASE_WIN32)
+	$(CXX) -b "$(MACHINE_X86)-$(ENV_X86)" $(ADDITIONAL_CFLAGS) -Wall "$(<)" -o "$(RELEASE_WIN32)/$(@)"
 	
-elaboraimmagine-$(RELEASE_WIN64).exe: $(SOURCES)
- $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_WIN64)/$(@)"
+$(RELEASE_NAME_WIN64): $(SOURCES)
+	mkdir -p $(RELEASE_WIN64)
+	$(CXX) -b "$(MACHINE_X64)-$(ENV_X64)" $(ADDITIONAL_CFLAGS) -Wall "$(<)" -o "$(RELEASE_WIN64)/$(@)"
 
-$(RELEASE_UNIX): $(SOURCES)
- $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_UNIX)/$(@)"
+$(RELEASE_NAME_UNIX): $(SOURCES)
+	mkdir -p $(RELEASE_UNIX)
+	$(CXX) $(ADDITIONAL_CFLAGS) -Wall "$(<)" -o "$(RELEASE_UNIX)/$(@)"
 
-clean: 
- $(RM) -rf $(RELEASE_WIN32)
- $(RM) -rf $(RELEASE_WIN64)
- $(RM) -rf $(RELEASE_UNIX)
+clean:
+	$(RM) -rf $(RELEASE_WIN32)
+	$(RM) -rf $(RELEASE_WIN64)
+	$(RM) -rf $(RELEASE_UNIX)
