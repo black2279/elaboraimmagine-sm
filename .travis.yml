@@ -27,7 +27,7 @@ after_success:
 
 deploy:
  provider: releases
- api_key: 8080f5853347d136dcc04fe3ae3d732e04f9627b
+ api_key: ${GITHUB_TOKEN}
  file:
  - ${RELEASE_NAME}-${RELEASE_WIN32}.zip
  - ${RELEASE_NAME}-${RELEASE_WIN64}.zip
