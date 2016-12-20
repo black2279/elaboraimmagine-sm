@@ -14,12 +14,12 @@ static void CaricaBmp(const char *Nome, unsigned char *header, unsigned int &dim
 		printf("File non disponibile o inesistente\n");
 		exit(1);
 	}
-    fseek(fHan,14,0); //Salta Header BMP
-    fread(&dim_head_bmp,sizeof(int), 1, fHan); //Lettura dimensione header
-    fread(&sx,sizeof(int), 1, fHan); // lettura 18-esimo byte che contiene la larghezza [4byte]
-    fread(&sy,sizeof(int), 1, fHan); // lettura 22-esimo byte che contiene l' altezza   [4byte]
-    dim_head_bmp += 14; //Somma alla dimensione dell'header dell' immagine quella del formato
-    rewind(fHan); // Resetta il puntatore al file
+	fseek(fHan,14,0); //Salta Header BMP
+	fread(&dim_head_bmp,sizeof(int), 1, fHan); //Lettura dimensione header
+	fread(&sx,sizeof(int), 1, fHan); // lettura 18-esimo byte che contiene la larghezza [4byte]
+	fread(&sy,sizeof(int), 1, fHan); // lettura 22-esimo byte che contiene l' altezza   [4byte]
+	dim_head_bmp += 14; //Somma alla dimensione dell'header dell' immagine quella del formato
+	rewind(fHan); // Resetta il puntatore al file
 	fread(header, dim_head_bmp, 1, fHan); // Caricamento da file dell'header
 	int dim = sx*sy*3; //Dimensione senza padding
 	if((sx*3)%4 != 0){
@@ -38,12 +38,12 @@ static void SalvaBmp(const char *Nome, unsigned char * header, const unsigned in
 		exit(1);
 	}
 
-    memcpy(header+18, &x, sizeof(unsigned int)); //modifica larghezza
-    memcpy(header+22, &y, sizeof(unsigned int)); //modifica altezza
-    fwrite(header, dim_head_bmp, 1, fHan); //Scrittura del nuovo header
-    int dim = x*y*3; //Dimensione senza padding
+	memcpy(header+18, &x, sizeof(unsigned int)); //modifica larghezza
+	memcpy(header+22, &y, sizeof(unsigned int)); //modifica altezza
+	fwrite(header, dim_head_bmp, 1, fHan); //Scrittura del nuovo header
+	int dim = x*y*3; //Dimensione senza padding
 	if((x*3)%4 != 0){
-     dim += ((4 - (x*3)%4) * y); // Aggiunta del padding se la larghezza non è divisibile per 4
+		dim += ((4 - (x*3)%4) * y); // Aggiunta del padding se la larghezza non è divisibile per 4
 	}
 	fwrite(DaDove, dim, 1, fHan); // Trasferimento dell' Immagine Destinazione su file
 	fclose(fHan); // Chiusura del file
@@ -92,7 +92,7 @@ float Bilineare(unsigned char * source, unsigned int sx, unsigned int sy, float 
 	if(Y >= sy - 3) Y = sy - 3;
 
     //Ogni coordinata viene moltiplicate per il numero di canali presenti
-    v1 = source[X*n_canali + (sx * Y*n_canali) ];
+	v1 = source[X*n_canali + (sx * Y*n_canali) ];
 	v2 = source[(X+1)*n_canali + (sx * Y*n_canali)];
 	v3 = source[(X)*n_canali + (sx * ((Y+1)*n_canali))];
 	v4 = source[(X+1)*n_canali + (sx * ((Y+1)*n_canali))];
@@ -145,7 +145,7 @@ char * Filtri[] = {"sharpen", "blur", "bordi", "bassorilievo"};
 char * Comandi[] = {"brightness", "gamma"};
 
 int Sharpen[5 * 5] = {
-	 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0,
      0, 0,-1, 0, 0,
      0,-1, 5,-1, 0,
      0, 0,-1, 0, 0,
@@ -153,7 +153,7 @@ int Sharpen[5 * 5] = {
 };
 
 int Blur[5 * 5] = {
-	 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0,
      0, 1, 1, 1, 0,
      0, 1, 1, 1, 0,
      0, 1, 1, 1, 0,
@@ -307,12 +307,12 @@ bool is_float(const std::string s)
 
 int main(int argc, char *argv[])
 {
-	unsigned char header[54]; // Header
-	unsigned int dim_head_bmp=0; //Dimensione Header
+    unsigned char header[54]; // Header
+    unsigned int dim_head_bmp=0; //Dimensione Header
     unsigned int paddingS = 0; // Padding dell'Immagine Sorgente
     unsigned int paddingD = 0; // Padding dell'Immagine Destinazione
-	unsigned int sx=0; //Larghezza Immagine Sorgente
-	unsigned int sy=0; //Altezza Immagine Sorgente
+    unsigned int sx=0; //Larghezza Immagine Sorgente
+    unsigned int sy=0; //Altezza Immagine Sorgente
     unsigned int dx=0; //Larghezza Immagine Destinazione
     unsigned int dy=0; //Altezza Immagine Destinazione
 
@@ -328,7 +328,7 @@ int main(int argc, char *argv[])
     unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
     unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
 
-	CaricaBmp( argv[1], header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
+    CaricaBmp( argv[1], header, dim_head_bmp, ImmagineS, sx, sy); //Caricamento Immagine sorgente
 
     printf("Dimensione immagine in input: L %d x H %d\n", sx, sy);
     printf("Dimensione immagine prevista per l'output: L %d x H %d\n", dx, dy);
@@ -423,7 +423,7 @@ int main(int argc, char *argv[])
 	delete[] ImmagineF;
 	}
 	if (ImmagineDP){
-    delete[] ImmagineDP;
+        delete[] ImmagineDP;
 	}
 
 	return 0;
