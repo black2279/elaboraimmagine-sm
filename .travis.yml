@@ -6,7 +6,7 @@ compiler: gcc
 
 #install:
 install:
- - sudo apt-get install mingw-w64 gcc-mingw-w64
+ - sudo apt-get install mingw-w64 gcc-mingw-w64 gcc-mingw-w64-i686 gcc-mingw-w64-x86-64
 
 #build
 script: 
