@@ -7,3 +7,6 @@ compiler: gcc
 #build
 script: 
 	- make all
+
+after_success:
+	- echo "Build effettuata con successo" 
