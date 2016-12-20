@@ -1,0 +1,9 @@
+#language used
+language: cpp
+
+#compiler
+compiler: gcc
+
+#build
+script: 
+make all
