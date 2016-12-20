@@ -4,6 +4,10 @@ language: cpp
 #compiler
 compiler: gcc
 
+#install:
+install:
+ - sudo apt-get install binutils-mingw-w64
+
 #build
 script: 
  - make all
