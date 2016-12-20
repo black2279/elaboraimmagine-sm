@@ -11,7 +11,7 @@ install:
 #build
 script: 
  - i686-w64-mingw32-gcc --help
- - x86_64-w64-mingw32-gcc --help
+ - x86-64-w64-mingw32-gcc --help
  - make all
 
 after_success:
