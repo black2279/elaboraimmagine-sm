@@ -8,17 +8,17 @@ RELEASE_UNIX=unix
 
 all: $(RELEASE_WIN32) $(RELEASE_WIN64) $(RELEASE_UNIX)
 
-win32: elaboraimmagine-$(RELEASE_WIN32).exe
-win64: elaboraimmagine-$(RELEASE_WIN64).exe
-unix: elaboraimmagine
+$(RELEASE_WIN32): elaboraimmagine-$(RELEASE_WIN32).exe
+$(RELEASE_WIN64): elaboraimmagine-$(RELEASE_WIN64).exe
+$(RELEASE_UNIX): elaboraimmagine
 
-elaboraimmagine-x86.exe: $(SOURCES)
+elaboraimmagine-$(RELEASE_WIN32).exe: $(SOURCES)
  $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_WIN32)/$(@)"
 	
-elaboraimmagine-x64.exe: $(SOURCES)
+elaboraimmagine-$(RELEASE_WIN64).exe: $(SOURCES)
  $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_WIN64)/$(@)"
 
-elaboraimmagine: $(SOURCES)
+$(RELEASE_UNIX): $(SOURCES)
  $(CXX) $(ADDITIONAL_FLAGS) -Wall "$(<)" -o "$(RELEASE_UNIX)/$(@)"
 
 clean: 
