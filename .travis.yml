@@ -6,4 +6,4 @@ compiler: gcc
 
 #build
 script: 
-make all
+	- make all
