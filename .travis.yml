@@ -10,9 +10,24 @@ install:
 
 #build
 script: 
+ # compiler existing test
  #- i686-w64-mingw32-gcc --help
  #- x86_64-w64-mingw32-gcc --help
  - make all
+ - zip $(RELEASE_NAME)-$(RELEASE_WIN32).zip $(RELEASE_WIN32)/$(RELEASE_NAME).exe README.md
+ - zip $(RELEASE_NAME)-$(RELEASE_WIN64).zip $(RELEASE_WIN64)/$(RELEASE_NAME).exe README.md
+ - zip $(RELEASE_NAME)-$(RELEASE_UNIX).zip $(RELEASE_UNIX)/$(RELEASE_NAME) README.md
 
 after_success:
  - echo "Build effettuata con successo" 
+
+deploy:
+ provider: releases
+ api_key: 8080f5853347d136dcc04fe3ae3d732e04f9627b
+ file:
+ - $(RELEASE_NAME)-$(RELEASE_WIN32).zip
+ - $(RELEASE_NAME)-$(RELEASE_WIN64).zip
+ - $(RELEASE_NAME)-$(RELEASE_UNIX).zip
+ skip_cleanup: true
+ on:
+  tags: true
