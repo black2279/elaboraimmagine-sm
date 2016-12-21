@@ -270,7 +270,7 @@ static bool SelezioneFiltro(char * selezione){
 
 void ControlloDimensioni(const char *in_dx, unsigned int &out_dx, const char *in_dy, unsigned int &out_dy){
 
-    if(atoi(in_dx) > 0){
+	if(atoi(in_dx) > 0){
         out_dx = atoi(in_dx); // Conversione da stringa a intero
     }else{
         printf("Larghezza non valida\n");
@@ -305,6 +305,30 @@ bool is_float(const std::string s)
     return !s.empty() && it == s.end() && dot <= 1;
 }
 
+void print_help(){
+	printf(
+	"elaboraimmagine fileinput filtro/comando dimensioni_x dimensioni_y fileoutput\n"
+    "\n"  
+	"Filtri disponibili\n"
+	"\n"
+	"sharpen        Filtro che aumenta il contrasto\n"
+	"blur           Filtro che applica una sfocatura all'immagine\n"  
+	"bordi          Filtro che evidenzia i bordi dell'immagine\n"  
+	"bassorilievo   Filtro che genera un bassorilievo dell'immagine\n"
+	"\n"
+	"Comandi disponibili\n"
+	"\n"
+	"brightness     Permette di aumentare o di diminuire la luminosità\n"
+	"               di una certa percentuale. Essa può essere inserita a runtime\n"
+	"gamma          Permette di corregge la gamma dei colori dell'immagine.\n"
+	"               Il valore di correzione può essere specificato a runtime\n"
+	"\n"
+	"Comandi speciali\n"
+	"\n"
+	"nofilter       Permette di non applicare nessun filtro/comando\n"
+	);
+}
+
 int main(int argc, char *argv[])
 {
     unsigned char header[54]; // Header
@@ -318,12 +342,17 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    if(argv[1] == NULL){ // Controllo comando senza parametri
-        printf("Errore\n");
+    if(argv[1] == NULL || strcmp(argv[1],"help")==0 || strcmp(argv[1],"h")==0){ // Controllo comando senza parametri
+        print_help();
         exit(1);
     }
-
-    ControlloDimensioni( argv[3], dx, argv[4], dy);
+	
+	if(argc > 4)
+        ControlloDimensioni( argv[3], dx, argv[4], dy);
+	else{
+        printf("Dimensioni non inserite\n");
+		exit(1);
+	}
 
     unsigned char *ImmagineS = NULL; //Puntatore a Immagine Sorgente
     unsigned char *ImmagineD = new unsigned char[dx*dy*3]; //Creazione spazio per Immagine di Destinazione
